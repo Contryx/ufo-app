@@ -1,140 +1,163 @@
 import streamlit as st
-
-
-def set_background(image_url):
-    """
-    Adds a background image using CSS.
-    :param image_url: URL or local path of the background image.
-    """
-    st.markdown(
-        f"""
-        <style>
-        .stApp {{
-            background: url("{image_url}") no-repeat center center fixed;
-            background-size: cover;
-        }}
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
-
-
-set_background("https://images.nationalgeographic.org/image/upload/v1638892233/EducationHub/photos/crops-growing-in-thailand.jpg") 
-
-
-
-
-import streamlit as st
-import joblib
 import pandas as pd
+import plotly.express as px
 
-# Load trained pipeline
-model = joblib.load("mlp_model.pkl")
 
-# Custom CSS to style labels, reduce spacing, and add white boxes for warnings
+st.set_page_config(layout="wide")
+
+
 st.markdown(
     """
     <style>
-        /* Make title clear and readable */
-        .title {
-            color: black !important;
-            font-size: 26px !important;
-            font-weight: bold !important;
-            text-align: center;
-        }
-
-        /* Improve label styling - keep bold and make the white box fit the text */
-        .stNumberInput label, .stSelectbox label {
-            font-size: 14px !important;
-            font-weight: bold !important;
-            background-color: rgba(255, 255, 255, 0.7);
-            padding: 2px 5px !important; /* Adjusted padding for better fit */
-            border-radius: 3px !important; /* Smaller rounded corners */
-            display: inline-block;
-            margin-bottom: -2px !important; /* Reduce spacing between label and input */
-        }
-
-        /* Reduce gap between inputs */
-        div[data-testid="stNumberInput"], div[data-testid="stSelectbox"] {
-            margin-top: -2px !important; /* Pull input boxes closer to labels */
-        }
-
-        /* Improve button visibility */
-        div.stButton > button {
-            font-size: 18px !important;
-            padding: 12px 24px;
-            font-weight: bold !important;
-            background-color: white !important;
-            border-radius: 8px;
-            border: none;
-        }
-
-        /* Style for prediction result box */
-        .result-box {
-            font-size: 20px !important;
-            font-weight: bold !important;
-            background-color: rgba(255, 255, 255, 0.9);
-            padding: 15px;
-            border-radius: 10px;
-            text-align: center;
-            margin-top: 15px;
-            border: 2px solid black;
-        }
-
-        /* Style for warning message box */
-        .warning-box {
-            font-size: 16px !important;
-            font-weight: bold !important;
-            background-color: rgba(255, 255, 255, 0.9);
-            padding: 12px;
-            border-radius: 8px;
-            text-align: center;
-            border: 2px solid red;
-            color: black !important;
-            margin-top: 10px;
-        }
+    /* Make dropdown checkboxes smaller */
+    .stMultiSelect div[data-baseweb="menu"] {
+        font-size: 1px !important;  /* Smaller text inside dropdown */
+    }
+    /* Reduce the height of dropdown options */
+    .stMultiSelect div[data-baseweb="option"] {
+        min-height: 1px !important;  /* Reduce option height */
+        padding: 1px 1px !important;  /* Less padding inside */
+    }
+    /* Make selected option boxes (red tags) smaller */
+    .stMultiSelect div[data-baseweb="tag"] {
+        font-size: 1px !important;  
+        padding: 1px 1px !important;  
+        height: 1px !important;  
+        line-height: 1px !important;
+        border-radius: 1px !important;  
+    }
     </style>
     """,
-    unsafe_allow_html=True
+    unsafe_allow_html=True,
 )
 
-# Display Title (Without Emojis)
-st.markdown('<h1 class="title">Crop Yield Prediction</h1>', unsafe_allow_html=True)
 
-# User Inputs (Bold Labels, No Emojis)
-average_rain_fall_mm_per_year = st.number_input("**Avg Rainfall (mm/year):**", min_value=0.0, value=0.0)
-avg_temp = st.number_input("**Avg Temperature (°C):**", min_value=-10.0, value=0.0)
-pesticides_tonnes = st.number_input("**Pesticides (tonnes):**", min_value=0.0, value=0.0)
-area = st.selectbox("**Location:**", ["India", "Europe"])
+df = pd.read_csv("cleaned_ufo_sightings.csv")
 
-# Include 'Item' selection
-item_options = ["Maize", "Potatoes", "Rice, paddy", "Sorghum", "Wheat"]
-item = st.selectbox("**Crop Type:**", item_options)
 
-# Create input DataFrame
-input_data = pd.DataFrame({
-    'average_rain_fall_mm_per_year': [average_rain_fall_mm_per_year],
-    'avg_temp': [avg_temp],
-    'pesticides_tonnes': [pesticides_tonnes],
-    'Area': [area],
-    'Item': [item]  
-})
+df['datetime'] = pd.to_datetime(df['datetime'], errors='coerce')
 
-# Prediction Button
-if st.button("Predict Yield"):
-    # Check if all numerical inputs are zero
-    if average_rain_fall_mm_per_year == 0 and avg_temp == 0 and pesticides_tonnes == 0:
-        st.markdown(
-            '<div class="warning-box">⚠️ Please enter valid values for rainfall, temperature, and pesticides to get a prediction.</div>',
-            unsafe_allow_html=True
-        )
+
+df['latitude'] = pd.to_numeric(df['latitude'], errors='coerce')
+df['longitude'] = pd.to_numeric(df['longitude'], errors='coerce')
+
+
+df = df[df['country'] == "us"]
+
+
+state_mapping = {
+    'AL': 'Alabama', 'AK': 'Alaska', 'AZ': 'Arizona', 'AR': 'Arkansas', 'CA': 'California',
+    'CO': 'Colorado', 'CT': 'Connecticut', 'DE': 'Delaware', 'FL': 'Florida', 'GA': 'Georgia',
+    'HI': 'Hawaii', 'ID': 'Idaho', 'IL': 'Illinois', 'IN': 'Indiana', 'IA': 'Iowa',
+    'KS': 'Kansas', 'KY': 'Kentucky', 'LA': 'Louisiana', 'ME': 'Maine', 'MD': 'Maryland',
+    'MA': 'Massachusetts', 'MI': 'Michigan', 'MN': 'Minnesota', 'MS': 'Mississippi', 'MO': 'Missouri',
+    'MT': 'Montana', 'NE': 'Nebraska', 'NV': 'Nevada', 'NH': 'New Hampshire', 'NJ': 'New Jersey',
+    'NM': 'New Mexico', 'NY': 'New York', 'NC': 'North Carolina', 'ND': 'North Dakota', 'OH': 'Ohio',
+    'OK': 'Oklahoma', 'OR': 'Oregon', 'PA': 'Pennsylvania', 'RI': 'Rhode Island', 'SC': 'South Carolina',
+    'SD': 'South Dakota', 'TN': 'Tennessee', 'TX': 'Texas', 'UT': 'Utah', 'VT': 'Vermont',
+    'VA': 'Virginia', 'WA': 'Washington', 'WV': 'West Virginia', 'WI': 'Wisconsin', 'WY': 'Wyoming'
+}
+
+df['state'] = df['state'].str.upper().map(state_mapping)
+
+shape_mapping = {
+    'light': 'Light', 
+    'flash': 'Light',
+    'flare': 'Light',
+    'fireball': 'Round',
+    'circle': 'Round',
+    'sphere': 'Round',
+    'disk': 'Round',
+    'oval': 'Round',
+    'egg': 'Round',
+    'round': 'Round',
+    'cylinder': 'Cylindrical',
+    'cigar': 'Cylindrical',
+    'cone': 'Cylindrical',
+    'triangle': 'Triangular',
+    'delta': 'Triangular',
+    'pyramid': 'Triangular',
+    'diamond': 'Triangular',
+    'chevron': 'Triangular',
+    'formation': 'Multiple Objects',
+    'changing': 'Multiple Objects',
+    'changed': 'Multiple Objects',
+    'rectangle': 'Rectangular',
+    'cross': 'Cross',
+    'hexagon': 'Hexagon',
+    'crescent': 'Crescent',
+    'teardrop': 'Teardrop',
+    'unknown': 'Other',
+    'other': 'Other'
+}
+
+df['shape'] = df['shape'].map(shape_mapping).fillna(df['shape'])
+
+
+def format_duration(seconds):
+    if seconds < 60:
+        return f"{int(seconds)} sec"
     else:
-        try:
-            predicted_yield = model.predict(input_data)[0]
-            st.markdown(
-                f'<div class="result-box"><b>Predicted Yield for {area} ({item}):</b> <br> <span style="font-size:22px;">{predicted_yield:.2f} hg/ha</span></div>',
-                unsafe_allow_html=True
-            )
-        except Exception as e:
-            st.error(f"Error making prediction: {e}")
+        return f"{round(seconds / 60, 2)} min"
 
+df["Duration"] = df["duration (seconds)"].apply(format_duration)
+
+
+st.title("UFO Sightings in the US")
+
+
+st.sidebar.header("Filter UFO Sightings")
+
+
+state_options = df['state'].dropna().unique().tolist()
+state_selection = st.sidebar.multiselect("Select State", options=state_options, default=state_options if state_options else [])
+
+
+df_filtered = df[df['state'].isin(state_selection)]
+
+
+df_filtered = df_filtered.reset_index(drop=True)
+df_filtered['id'] = df_filtered.index + 1  
+
+
+color_map = {
+    'Light': 'rgb(200, 0, 0)',  # Dark Red
+    'Round': 'rgb(0, 0, 139)',  # Dark Blue
+    'Cylindrical': 'rgb(0, 128, 0)',  # Dark Green
+    'Triangular': 'rgb(128, 0, 128)',  # Dark Purple
+    'Multiple Objects': 'rgb(255, 165, 0)',  # Dark Orange
+    'Rectangular': 'rgb(255, 0, 255)',  # Dark Magenta
+    'Cross': 'rgb(0, 0, 0)',  # Black
+    'Hexagon': 'rgb(0, 100, 0)',  # Dark Green
+    'Crescent': 'rgb(255, 69, 0)',  # Dark Orange Red
+    'Teardrop': 'rgb(0, 139, 139)',  # Dark Cyan
+    'Other': 'rgb(169, 169, 169)'  # Dark Grey
+}
+
+
+st.subheader("UFO Sightings Map (Hover to see details)")
+
+fig = px.scatter_mapbox(
+    df_filtered,
+    lat="latitude",
+    lon="longitude",
+    hover_name="city",
+    hover_data={
+        "city": True,
+        "state": True,
+        "shape": True,
+        "Duration": True,
+        "comments": True
+    },
+    color="shape",
+    color_discrete_map=color_map, 
+    mapbox_style="open-street-map",
+    zoom=2.5,
+    height=600,
+    width=800
+)
+
+
+fig.update_traces(marker=dict(size=6, opacity=0.7, allowoverlap=True))
+
+st.plotly_chart(fig, use_container_width=True)
