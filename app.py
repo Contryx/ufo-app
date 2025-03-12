@@ -134,8 +134,9 @@ fig = px.scatter_mapbox(
     df_filtered,
     lat="latitude",
     lon="longitude",
-    hover_name="city",
+    hover_name="city",  # Add city to the hover name
     hover_data={
+        "city": True,  # Show city in the hover data
         "state": True,
         "shape": True,
         "Duration": True,
@@ -153,5 +154,6 @@ fig = px.scatter_mapbox(
 fig.update_traces(marker=dict(size=4, opacity=0.7, allowoverlap=True))
 
 st.plotly_chart(fig, use_container_width=True)
+
 
 
