@@ -2,9 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-
 st.set_page_config(layout="wide")
-
 
 st.markdown(
     """
@@ -31,19 +29,14 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-
 df = pd.read_csv("cleaned_ufo_sightings.csv")
 
-
 df['datetime'] = pd.to_datetime(df['datetime'], errors='coerce')
-
 
 df['latitude'] = pd.to_numeric(df['latitude'], errors='coerce')
 df['longitude'] = pd.to_numeric(df['longitude'], errors='coerce')
 
-
 df = df[df['country'] == "us"]
-
 
 state_mapping = {
     'AL': 'Alabama', 'AK': 'Alaska', 'AZ': 'Arizona', 'AR': 'Arkansas', 'CA': 'California',
@@ -93,7 +86,6 @@ shape_mapping = {
 
 df['shape'] = df['shape'].map(shape_mapping).fillna(df['shape'])
 
-
 def format_duration(seconds):
     if seconds < 60:
         return f"{int(seconds)} sec"
@@ -102,23 +94,17 @@ def format_duration(seconds):
 
 df["Duration"] = df["duration (seconds)"].apply(format_duration)
 
-
 st.title("UFO Sightings in the US")
 
-
 st.sidebar.header("Filter UFO Sightings")
-
 
 state_options = df['state'].dropna().unique().tolist()
 state_selection = st.sidebar.multiselect("Select State", options=state_options, default=state_options if state_options else [])
 
-
 df_filtered = df[df['state'].isin(state_selection)]
-
 
 df_filtered = df_filtered.reset_index(drop=True)
 df_filtered['id'] = df_filtered.index + 1  
-
 
 color_map = {
     'Light': 'rgb(200, 0, 0)',  # Dark Red
@@ -134,8 +120,15 @@ color_map = {
     'Other': 'rgb(169, 169, 169)'  # Dark Grey
 }
 
-
 st.subheader("UFO Sightings Map (Hover to see details)")
+
+# Add a simple text under the map title
+st.markdown(
+    """
+    <p style="font-size:16px;">Tip: You can double-click on any shape in the legend to filter the map and see only sightings of that specific shape.</p>
+    """,
+    unsafe_allow_html=True
+)
 
 fig = px.scatter_mapbox(
     df_filtered,
@@ -143,7 +136,6 @@ fig = px.scatter_mapbox(
     lon="longitude",
     hover_name="city",
     hover_data={
-        "city": True,
         "state": True,
         "shape": True,
         "Duration": True,
@@ -151,13 +143,15 @@ fig = px.scatter_mapbox(
     },
     color="shape",
     color_discrete_map=color_map, 
-    mapbox_style="open-street-map",
-    zoom=2.5,
+    mapbox_style="carto-positron",  # Gray style map
+    zoom=3,
     height=600,
     width=800
 )
 
-
-fig.update_traces(marker=dict(size=6, opacity=0.7, allowoverlap=True))
+# Make markers smaller and allow overlap for better visualization when zoomed out
+fig.update_traces(marker=dict(size=4, opacity=0.7, allowoverlap=True))
 
 st.plotly_chart(fig, use_container_width=True)
+
+
