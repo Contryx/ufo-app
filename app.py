@@ -113,6 +113,14 @@ year_range = st.sidebar.slider(
 # Filter the dataset based on the selected year range
 df_filtered = df[(df['year'] >= year_range[0]) & (df['year'] <= year_range[1])]
 
+# Add shape filter in the sidebar
+shape_options = df_filtered['shape'].dropna().unique().tolist()
+shape_selection = st.sidebar.multiselect("Select Shape(s)", options=shape_options, default=shape_options if shape_options else [])
+
+# Further filter based on shape selection
+if shape_selection:
+    df_filtered = df_filtered[df_filtered['shape'].isin(shape_selection)]
+
 state_options = df_filtered['state'].dropna().unique().tolist()
 state_selection = st.sidebar.multiselect("Select State", options=state_options, default=state_options if state_options else [])
 
@@ -168,18 +176,20 @@ fig = px.scatter_mapbox(
 # Make markers smaller and allow overlap for better visualization when zoomed out
 fig.update_traces(marker=dict(size=4, opacity=0.7, allowoverlap=True))
 
+# Hide the interactive legend on the right
+fig.update_layout(
+    showlegend=False  # Hides the legend
+)
+
 st.plotly_chart(fig, use_container_width=True)
 
-# Info box showing the total number of sightings in the selected year range
+# Info box showing the total number of sightings in the selected year range and selected shapes
 total_sightings = len(df_filtered)
 st.markdown(
     f"""
     <div style="padding: 10px; background-color: #f4f4f4; border-radius: 5px; font-size: 18px;">
-        <strong>Total Sightings in the Selected Years: {total_sightings}</strong>
+        <strong>Total Sightings in the Selected Years and Shapes: {total_sightings}</strong>
     </div>
     """,
     unsafe_allow_html=True
 )
-
-
-
