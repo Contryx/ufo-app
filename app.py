@@ -38,6 +38,9 @@ df['longitude'] = pd.to_numeric(df['longitude'], errors='coerce')
 
 df = df[df['country'] == "us"]
 
+# Add a 'year' column to filter by year
+df['year'] = df['datetime'].dt.year
+
 state_mapping = {
     'AL': 'Alabama', 'AK': 'Alaska', 'AZ': 'Arizona', 'AR': 'Arkansas', 'CA': 'California',
     'CO': 'Colorado', 'CT': 'Connecticut', 'DE': 'Delaware', 'FL': 'Florida', 'GA': 'Georgia',
@@ -98,10 +101,22 @@ st.title("UFO Sightings in the US")
 
 st.sidebar.header("Filter UFO Sightings")
 
-state_options = df['state'].dropna().unique().tolist()
+# Add year filter in the sidebar with slider
+year_range = st.sidebar.slider(
+    "Select Years", 
+    min_value=1906, 
+    max_value=2014, 
+    value=(1906, 2014), 
+    step=1
+)
+
+# Filter the dataset based on the selected year range
+df_filtered = df[(df['year'] >= year_range[0]) & (df['year'] <= year_range[1])]
+
+state_options = df_filtered['state'].dropna().unique().tolist()
 state_selection = st.sidebar.multiselect("Select State", options=state_options, default=state_options if state_options else [])
 
-df_filtered = df[df['state'].isin(state_selection)]
+df_filtered = df_filtered[df_filtered['state'].isin(state_selection)]
 
 df_filtered = df_filtered.reset_index(drop=True)
 df_filtered['id'] = df_filtered.index + 1  
@@ -135,7 +150,7 @@ fig = px.scatter_mapbox(
     lat="latitude",
     lon="longitude",
     hover_name="city",  # Add city to the hover name
-    hover_data={
+    hover_data={  # Add relevant information to hover
         "city": True,  # Show city in the hover data
         "state": True,
         "shape": True,
@@ -154,6 +169,17 @@ fig = px.scatter_mapbox(
 fig.update_traces(marker=dict(size=4, opacity=0.7, allowoverlap=True))
 
 st.plotly_chart(fig, use_container_width=True)
+
+# Info box showing the total number of sightings in the selected year range
+total_sightings = len(df_filtered)
+st.markdown(
+    f"""
+    <div style="padding: 10px; background-color: #f4f4f4; border-radius: 5px; font-size: 18px;">
+        <strong>Total Sightings in the Selected Years: {total_sightings}</strong>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 
 
